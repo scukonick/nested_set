@@ -30,7 +30,7 @@ func main() {
 		log.Printf("Node: %+v", node)
 	}
 
-	value := "bees"
+	value := "mammals"
 	movingNode, err := t.GetNodeByValue(value)
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("New Parent: %+v", newParent)
-	err = t.MyMove(newParent, movingNode)
+	err = t.MoveNode(newParent, movingNode)
 	if err != nil {
 		log.Fatal(err)
 	}

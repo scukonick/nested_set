@@ -232,197 +232,6 @@ func (t *Tree) DeleteNode(n *Node) (err error) {
 	return
 }
 
-func (t *Tree) MoveNode(node, newParent *Node) error {
-	tx, err := t.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-		err = tx.Commit()
-	}()
-
-	var newLeftKey int32 = 1
-	if newParent != nil {
-		newLeftKey = newParent.LeftKey + 1
-	}
-	log.Printf("New left key: %d", newLeftKey)
-
-	width := node.RightKey - node.LeftKey + 1
-	distance := newLeftKey - node.LeftKey
-	tmpPos := node.LeftKey
-	log.Printf("Width: %d, distance: %d", width, distance)
-
-	if distance < 0 {
-		distance -= width
-		tmpPos += width
-	}
-
-	if distance == 0 {
-		// no need to move anything
-		return nil
-	}
-
-	// Creating space for our node and it's children
-	log.Print("Creating space left_key")
-	query := `
-	UPDATE tree SET
-	left_key = left_key + $1
-	WHERE left_key >= $2`
-	_, err = tx.Exec(query, width, newLeftKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	log.Print("Creating space right_key")
-	query = `
-	UPDATE tree SET
-	right_key = right_key + $1
-	WHERE right_key >= $2`
-	_, err = tx.Exec(query, width, newLeftKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	// Moving our node into new space
-	log.Print("Moving node..")
-	query = `
-	UPDATE tree SET
-	left_key = left_key + $1,
-	right_key = right_key + $1
-  WHERE left_key >= $2
-	AND right_key <= $3`
-	_, err = tx.Exec(query, distance, tmpPos, node.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	// Cleaning old space
-	log.Print("Cleaning space - left key")
-	query = `
-	UPDATE tree SET
-	left_key = left_key - $1
-	WHERE left_key > $2`
-	_, err = tx.Exec(query, width, node.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	log.Print("Cleaning space - right_key")
-	query = `
-	UPDATE tree SET
-	right_key = right_key - $1
-	WHERE right_key > $2`
-	_, err = tx.Exec(query, width, node.RightKey)
-	return err
-}
-
-func (t *Tree) MoveNodeA(node, newParent *Node) error {
-	tx, err := t.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			return
-		}
-		err = tx.Commit()
-	}()
-
-	width := node.RightKey - node.LeftKey + 1
-
-	// 'Remove' our branch
-	log.Printf("Removing our branch")
-	query := `
-	UPDATE tree SET
-	left_key = 0-$1, right_key = 0-$2
-	WHERE left_key >= $1 AND right_key <= $2`
-	_, err = tx.Exec(query, node.LeftKey, node.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	// decrease left and/or right keys of currently 'lower' items (and parents)
-	log.Printf("Decreasing keys of currently lower items (left_key)")
-	query = `
-	UPDATE tree SET
-	left_key = left_key - $2
-	WHERE left_key > $1;`
-	_, err = tx.Exec(query, node.RightKey, width)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-	log.Printf("Decreasing keys of currently lower items (right_key)")
-	query = `
-	UPDATE tree SET
-	right_key = right_key - $2
-	WHERE right_key > $1;`
-	_, err = tx.Exec(query, node.RightKey, width)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	// increase left and/or right keys of future 'lower' items (and parents)
-	log.Printf("Increasing keys of future lower items (left_key)")
-	query = `
-	UPDATE tree SET
-	left_key = left_key + $2
-	WHERE left_key >=
-	(CASE WHEN $3::INTEGER > $1 THEN $3::INTEGER - $2 ELSE $1 END)`
-	// No idea why postgres is asking to convert $3 to INTEGER
-	_, err = tx.Exec(query, node.RightKey, width, newParent.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-	log.Printf("Increasing keys of future lower items (right_key)")
-	query = `
-	UPDATE tree SET
-	right_key = right_key + $2
-	WHERE right_key >=
-	(CASE WHEN $3::INTEGER > $1 THEN $3::INTEGER - $2 ELSE $1 END)`
-	_, err = tx.Exec(query, node.RightKey, width, newParent.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	// move subtree) and update it's parent item id
-	log.Printf("move subtree and update it's parent item id")
-	query = `
-	UPDATE tree
-	SET
-	    left_key = 0-(left_key)+
-			(CASE WHEN $4 > $2
-				THEN $4::INTEGER - $2::INTEGER - 1
-				ELSE $4::INTEGER - $2::INTEGER - 1 + $3
-				END),
-	    right_key = 0-(right_key)+
-			(CASE WHEN $4 > $2
-				THEN $4::INTEGER - $2::INTEGER - 1
-				ELSE $4::INTEGER - $2::INTEGER - 1 + $3
-				END)
-	WHERE left_key <= 0-($1::INTEGER) AND right_key >= 0-($2::INTEGER)`
-	_, err = tx.Exec(query, node.LeftKey, node.RightKey, width, newParent.RightKey)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-	return nil
-
-}
-
 func (t *Tree) showTree() error {
 	nodes, err := t.GetAllNodes()
 	if err != nil {
@@ -471,7 +280,38 @@ func (t *Tree) GetParent(node *Node) (*Node, error) {
 
 }
 
-func (t *Tree) MyMove(newParent, node *Node) error {
+// IsDescendantOf checks if node child is really descendant of node parent
+func IsDescendantOf(child, parent *Node) bool {
+	if child.LeftKey > parent.LeftKey && child.RightKey < parent.RightKey {
+		return true
+	}
+	return false
+}
+
+// MoveNode moves node to new parent newParent.
+// It refuses to move node to it's descendant or move root node
+// and returns error in that case.
+// It does nothing and returns nil error in case of trying
+// to move node to itself.
+func (t *Tree) MoveNode(newParent, node *Node) error {
+	width := node.RightKey - node.LeftKey + 1
+	distance := node.RightKey - newParent.RightKey
+
+	// Doing checks if operation is possible
+	if distance == 0 {
+		return nil
+	}
+
+	if IsDescendantOf(newParent, node) {
+		return errors.New("Could not move node to it's own descendant")
+	}
+
+	_, err := t.GetParent(node)
+	if err != nil && err == ErrNodeDoesNotExist {
+		return errors.New("Not possible to move orphan node (or root node)")
+	}
+
+	// Let's start transaction!
 	tx, err := t.DB.Begin()
 	if err != nil {
 		return err
@@ -484,95 +324,101 @@ func (t *Tree) MyMove(newParent, node *Node) error {
 		err = tx.Commit()
 	}()
 
-	width := node.RightKey - node.LeftKey + 1
-	distance := node.RightKey - newParent.RightKey - 1
-
-	if distance == 0 {
-		// not moving anything
-		return nil
-	}
-
-	oldParent, err := t.GetParent(node)
-	if err != nil {
-		// TODO  - check if our node is root node.
-		return err
-	}
-	log.Printf("Old parent: %+v", oldParent)
-
-	// Decrease right key for all the nodes after removal
-	log.Print("Decrease right key for all the next nodes after removal")
+	// 'Remove' our branch
+	log.Printf("Removing our branch")
 	query := `
 	UPDATE tree SET
-	right_key = right_key - $3
-	WHERE
-	right_key > $2`
-	_, err = tx.Exec(query, node.LeftKey, node.RightKey, width)
+	left_key = -left_key, right_key = -right_key
+	WHERE left_key >= $1 AND right_key <= $2`
+	_, err = tx.Exec(query, node.LeftKey, node.RightKey)
 	if err != nil {
 		return err
 	}
 	showTxTree(tx)
 
-	// Decrease right key for old parent branch
-	log.Printf("Decrease right key for old parent branch")
+	// Decrease right key for nodes after removal and parents
+	log.Print("Decrease right key for nodes after removal and parents")
 	query = `
 	UPDATE tree SET
-	right_key = right_key - $3
-	WHERE left_key <= $1 AND
-	right_key >= $2`
-	_, err = tx.Exec(query, oldParent.LeftKey, oldParent.RightKey, width)
+	right_key = right_key - $2
+	WHERE
+	right_key > $1`
+	_, err = tx.Exec(query, node.RightKey, width)
+	if err != nil {
+		return err
+	}
+	showTxTree(tx)
+
+	// Decrease left key for nodes after removal
+	log.Printf("Decrease left key for nodes after removal")
+	query = `
+	UPDATE tree SET
+	left_key = left_key - $2
+	WHERE left_key > $1`
+	_, err = tx.Exec(query, node.LeftKey, width)
+	if err != nil {
+		return err
+	}
+	showTxTree(tx)
+
+	// Increasing right_key after insertion and new paretns
+	newParentUpdated := newParent.RightKey - width
+	if distance > 0 {
+		newParentUpdated = newParent.RightKey
+	}
+	log.Printf("Increasing right key after the place of insertion and new parents")
+	query = `
+	UPDATE tree SET
+	right_key = right_key + $2
+	WHERE right_key >= $1`
+	_, err = tx.Exec(query, newParentUpdated, width)
+	if err != nil {
+		return err
+	}
+	showTxTree(tx)
+
+	// Increasing left_key after insertion
+	log.Printf("Increasing left key after the place of insertion")
+	query = `
+	UPDATE tree SET
+	left_key = left_key + $2
+	WHERE left_key > $1`
+	_, err = tx.Exec(query, newParentUpdated, width)
 	if err != nil {
 		return err
 	}
 	showTxTree(tx)
 
 	// Actually moving our branch
+	var d int32
+	if distance > 0 {
+		newParentRK := newParent.RightKey + width
+		d = node.RightKey - newParentRK + 1
+	} else {
+		d = distance + 1
+	}
 	log.Print("Actually moving our branch")
 	query = `
 	UPDATE tree SET
-	right_key = right_key - $3,
-	left_key = left_key - $3
-	WHERE left_key >= $1 AND
-	right_key <= $2`
-	_, err = tx.Exec(query, node.LeftKey, node.RightKey, distance)
-	if err != nil {
-		return err
-	}
-	showTxTree(tx)
-
-	if distance > 0 {
-		// If moving left increase both keys
-		// for all the next nodes after the place of insertion
-		log.Print("Increase both keys for all the next nodes after the place of insertion")
-		query = `
-		UPDATE tree SET
-		right_key = right_key + $3,
-		left_key = left_key + $3
-		WHERE left_key > $1 AND
-		right_key > $2 AND
-		NOT (left_key >= $4 AND right_key <= $5)` // ignoring our branch
-		_, err = tx.Exec(query, newParent.LeftKey, newParent.RightKey, width,
-			node.LeftKey-distance, node.RightKey-distance)
-	} else {
-		// if moving right decrease both keys
-		// for all the next nodes after the place of removal
-		log.Printf("Decreasing both keys for all the next nodes after the place of removal")
-		query = `
-		UPDATE tree SET
-		right_key = right_key - $3,
-		left_key = left_key - $3
-		WHERE left_key > $1 AND
-		right_key > $2 AND
-		NOT (left_key >= $4 AND right_key <= $5)`
-		newRightKey := node.RightKey - distance
-		newLeftKey := node.LeftKey - distance
-		_, err = tx.Exec(query, node.LeftKey, node.RightKey, width,
-			newLeftKey, newRightKey)
-	}
+	right_key = -right_key - $1,
+	left_key = -left_key - $1
+	WHERE left_key <= 0`
+	_, err = tx.Exec(query, d)
 	if err != nil {
 		return err
 	}
 	showTxTree(tx)
 
 	err = errors.New("Doing rollback anyway")
+	return err
+}
+
+// RenameNode updates value of node. It returns non-nil error
+// in case if something goes wrong
+func (t *Tree) RenameNode(node *Node, newName string) error {
+	query := `
+	UPDATE tree SET
+	value = $1 WHERE id = $2`
+	_, err := t.DB.Exec(query, newName, node.ID)
 	return err
 }
