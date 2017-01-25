@@ -499,14 +499,14 @@ func (t *Tree) MyMove(newParent, node *Node) error {
 	}
 	log.Printf("Old parent: %+v", oldParent)
 
-	// Increase right key for all new parent branch
-	log.Print("Increase right key for all new parent branch")
+	// Decrease right key for all the nodes after removal
+	log.Print("Decrease right key for all the next nodes after removal")
 	query := `
 	UPDATE tree SET
-	right_key = right_key + $3
-	WHERE left_key <= $1 AND
-	right_key >= $2`
-	_, err = tx.Exec(query, newParent.LeftKey, newParent.RightKey, width)
+	right_key = right_key - $3
+	WHERE
+	right_key > $2`
+	_, err = tx.Exec(query, node.LeftKey, node.RightKey, width)
 	if err != nil {
 		return err
 	}
