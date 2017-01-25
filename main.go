@@ -30,14 +30,25 @@ func main() {
 		log.Printf("Node: %+v", node)
 	}
 
-	value := "mammals"
-	mammals, err := t.GetNodeByValue(value)
+	value := "bees"
+	movingNode, err := t.GetNodeByValue(value)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Mammals: %+v", mammals)
+	log.Printf("To move: %+v", movingNode)
 
-	log.Printf("Inserting horses")
+	newParent, err := t.GetNodeByValue("dogs")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("New Parent: %+v", newParent)
+	err = t.MyMove(newParent, movingNode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t.showTree()
+
+	/*log.Printf("Inserting horses")
 	_, err = t.InsertChild(mammals, "horses")
 	if err != nil {
 		log.Fatal(err)
@@ -60,5 +71,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	t.showTree()
+	t.showTree()*/
 }
