@@ -4,6 +4,7 @@ package main
 
 import (
 	"database/sql"
+	"log"
 	"testing"
 )
 
@@ -223,5 +224,63 @@ func TestMoveNode(t *testing.T) {
 	if !valid {
 		t.Error("Expected valid true, got false")
 	}
+}
 
+func TestMoveNodeRoot(t *testing.T) {
+	db, err := sql.Open("postgres", pgUrl)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	defer db.Close()
+	tree := NewTree(db)
+
+	animals, err := tree.GetNodeByValue("animals")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	insects, err := tree.GetNodeByValue("insects")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	err = tree.MoveNode(insects, animals)
+	if err == nil {
+		log.Fatal("Expected non-nil error, got: nil")
+	}
+
+	valid, err := checkTreeValidity(tree)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	if !valid {
+		t.Error("Expected valid true, got false")
+	}
+}
+
+func TestMoveNodeSame(t *testing.T) {
+	db, err := sql.Open("postgres", pgUrl)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	defer db.Close()
+	tree := NewTree(db)
+
+	insects, err := tree.GetNodeByValue("insects")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	err = tree.MoveNode(insects, insects)
+	if err != nil {
+		t.Errorf("Expected nil error, got: %v", err)
+	}
+
+	valid, err := checkTreeValidity(tree)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	if !valid {
+		t.Error("Expected valid true, got false")
+	}
 }
