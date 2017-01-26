@@ -1,0 +1,6 @@
+development:
+    driver: postgres
+    open: user=nest_tree dbname=nest_tree sslmode=disable
+integration:
+    driver: postgres
+    open: user=postgres dbname=postgres sslmode=disable host=db port=5432

@@ -1,0 +1,10 @@
+version: '2'
+services:
+  app:
+    build: .
+    depends_on: 
+      - db
+  db:
+    image: "postgres:latest"
+    ports: ["5432"]
+
