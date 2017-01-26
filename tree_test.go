@@ -284,3 +284,42 @@ func TestMoveNodeSame(t *testing.T) {
 		t.Error("Expected valid true, got false")
 	}
 }
+
+func TestIsPopulated(t *testing.T) {
+	db, err := sql.Open("postgres", pgUrl)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	defer db.Close()
+	tree := NewTree(db)
+
+	populated, err := tree.IsPopulated()
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	if !populated {
+		t.Error("Expected populated true, got false")
+	}
+
+	animals, err := tree.GetNodeByValue("animals")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	if animals.ID != tree.Root.ID {
+		t.Errorf("Expected root id: %d, got: %d", animals.ID, tree.Root.ID)
+	}
+}
+
+// TODO - realization of the commented tests.
+// For it we need to change how we create database during tests
+// because they need empty database or database in state condition
+/*
+func TestGetAllNodes(t *testing.T) {
+
+}
+func TestPlant(t *testing.T) {
+
+}
+*/
