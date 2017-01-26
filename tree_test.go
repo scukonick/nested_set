@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"log"
 	"testing"
+
+	_ "github.com/lib/pq"
 )
 
 const pgUrl = "user=postgres dbname=postgres sslmode=disable host=db port=5432"
