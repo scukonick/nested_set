@@ -42,13 +42,12 @@ func checkTreeValidity(tree *Tree) (bool, error) {
 
 func TestTreeRenameNode(t *testing.T) {
 	db, err := sql.Open("postgres", pgUrl)
-	defer db.Close()
-
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
-
+	defer db.Close()
 	tree := NewTree(db)
+
 	cats, err := tree.GetNodeByValue("cats")
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
@@ -79,10 +78,10 @@ func TestTreeRenameNode(t *testing.T) {
 
 func TestGetParent(t *testing.T) {
 	db, err := sql.Open("postgres", pgUrl)
-	defer db.Close()
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
+	defer db.Close()
 	tree := NewTree(db)
 
 	insects, err := tree.GetNodeByValue("insects")
@@ -107,10 +106,10 @@ func TestGetParent(t *testing.T) {
 
 func TestAddNode(t *testing.T) {
 	db, err := sql.Open("postgres", pgUrl)
-	defer db.Close()
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
+	defer db.Close()
 	tree := NewTree(db)
 
 	mammals, err := tree.GetNodeByValue("mammals")
@@ -144,24 +143,85 @@ func TestAddNode(t *testing.T) {
 
 func TestDeleteNode(t *testing.T) {
 	db, err := sql.Open("postgres", pgUrl)
-	defer db.Close()
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
+	defer db.Close()
 	tree := NewTree(db)
 
-	cats, err := tree.GetNodeByValue("cats")
+	dogs, err := tree.GetNodeByValue("dogs")
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
 
-	err = tree.DeleteNode(cats)
+	err = tree.DeleteNode(dogs)
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
 
-	_, err = tree.GetNodeByValue("cats")
+	_, err = tree.GetNodeByValue("dogs")
 	if err != ErrNodeDoesNotExist {
 		t.Fatalf("Expected error ErrNodeDoesNotExist, got: %v", err)
 	}
+
+	valid, err := checkTreeValidity(tree)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	if !valid {
+		t.Error("Expected valid true, got false")
+	}
+}
+
+func TestMoveNode(t *testing.T) {
+	db, err := sql.Open("postgres", pgUrl)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	defer db.Close()
+	tree := NewTree(db)
+
+	insects, err := tree.GetNodeByValue("insects")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	sharks, err := tree.GetNodeByValue("sharks")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	err = tree.MoveNode(sharks, insects)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	// updating instances
+	insects, err = tree.GetNodeByValue("insects")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	sharks, err = tree.GetNodeByValue("sharks")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	insectsParent, err := tree.GetParent(insects)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	if insectsParent.ID != sharks.ID {
+		t.Errorf("Expected insects parents id: %d, got: %d", insects.ID, insectsParent.ID)
+	}
+
+	valid, err := checkTreeValidity(tree)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	if !valid {
+		t.Error("Expected valid true, got false")
+	}
+
 }

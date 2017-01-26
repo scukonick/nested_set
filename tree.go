@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// ErrNodeDoesNotExist is returned by functions
+// ErrNodeDoesNotExist is returned by
 // GetNodeByValue if such node does not exist.
 var ErrNodeDoesNotExist = errors.New("sql: node does not exist")
 
@@ -113,7 +113,7 @@ func (t *Tree) GetNodeByValue(value string) (*Node, error) {
 	n := &Node{}
 
 	err := t.DB.QueryRow(query, value).Scan(&n.ID, &n.LeftKey, &n.RightKey, &n.Value)
-	if err != nil && err == sql.ErrNoRows {
+	if err == sql.ErrNoRows {
 		return nil, ErrNodeDoesNotExist
 	} else if err != nil {
 		return nil, err
@@ -324,7 +324,6 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 		err = tx.Commit()
 	}()
 
-	// 'Remove' our branch
 	log.Printf("Removing our branch")
 	query := `
 	UPDATE tree SET
@@ -334,9 +333,7 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	// Decrease right key for nodes after removal and parents
 	log.Print("Decrease right key for nodes after removal and parents")
 	query = `
 	UPDATE tree SET
@@ -347,9 +344,7 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	// Decrease left key for nodes after removal
 	log.Printf("Decrease left key for nodes after removal")
 	query = `
 	UPDATE tree SET
@@ -359,9 +354,7 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	// Increasing right_key after insertion and new paretns
 	newParentUpdated := newParent.RightKey - width
 	if distance > 0 {
 		newParentUpdated = newParent.RightKey
@@ -375,9 +368,7 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	// Increasing left_key after insertion
 	log.Printf("Increasing left key after the place of insertion")
 	query = `
 	UPDATE tree SET
@@ -387,9 +378,7 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	// Actually moving our branch
 	var d int32
 	if distance > 0 {
 		newParentRK := newParent.RightKey + width
@@ -407,10 +396,8 @@ func (t *Tree) MoveNode(newParent, node *Node) error {
 	if err != nil {
 		return err
 	}
-	showTxTree(tx)
 
-	err = errors.New("Doing rollback anyway")
-	return err
+	return nil
 }
 
 // RenameNode updates value of node. It returns non-nil error
