@@ -4,6 +4,6 @@
 sleep 5
 goose -env integration up 
 echo "Migrated"
-go test -tags integration
+go test -tags integration -coverprofile cover.out
 goose -env integration down
 
