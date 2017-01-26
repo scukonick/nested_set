@@ -111,8 +111,8 @@ func TestAddNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
-
 	tree := NewTree(db)
+
 	mammals, err := tree.GetNodeByValue("mammals")
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
@@ -139,5 +139,29 @@ func TestAddNode(t *testing.T) {
 	}
 	if !valid {
 		t.Error("Expected valid true, got false")
+	}
+}
+
+func TestDeleteNode(t *testing.T) {
+	db, err := sql.Open("postgres", pgUrl)
+	defer db.Close()
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+	tree := NewTree(db)
+
+	cats, err := tree.GetNodeByValue("cats")
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	err = tree.DeleteNode(cats)
+	if err != nil {
+		t.Fatalf("Expected error nil, got: %v", err)
+	}
+
+	_, err = tree.GetNodeByValue("cats")
+	if err != ErrNodeDoesNotExist {
+		t.Fatalf("Expected error ErrNodeDoesNotExist, got: %v", err)
 	}
 }
