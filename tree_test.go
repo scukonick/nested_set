@@ -128,7 +128,7 @@ func TestAddNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected error nil, got: %v", err)
 	}
-	if horsesParent.ID != horses.ID {
+	if horsesParent.ID != mammals.ID {
 		t.Fatalf("Expected new parent id: %d, got: %d", horses.ID, horsesParent.ID)
 	}
 
