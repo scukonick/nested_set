@@ -232,33 +232,6 @@ func (t *Tree) DeleteNode(n *Node) (err error) {
 	return
 }
 
-func (t *Tree) showTree() error {
-	nodes, err := t.GetAllNodes()
-	if err != nil {
-		return err
-	}
-	for _, node := range nodes {
-		log.Printf("Node: %+v", node)
-	}
-	return nil
-}
-
-func showTxTree(tx *sql.Tx) {
-	query := `
-  SELECT t.id, t.left_key, t.right_key, t.value
-  FROM tree as t
-  ORDER BY left_key
-  `
-	rows, _ := tx.Query(query)
-	defer rows.Close()
-
-	for rows.Next() {
-		n := &Node{}
-		rows.Scan(&n.ID, &n.LeftKey, &n.RightKey, &n.Value)
-		log.Printf("Node: %d\t%d\t%s", n.LeftKey, n.RightKey, n.Value)
-	}
-}
-
 // GetParent returns parent of node. If there is no parent node
 // it returns ErrNodeDoesNotExist error. It also returns this error
 // for root node, so user of this function should check if input node
