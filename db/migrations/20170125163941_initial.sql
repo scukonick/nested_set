@@ -11,16 +11,16 @@ CREATE TABLE tree (
 );
 
 
-INSERT INTO tree (id, left_key, right_key, value) VALUES
-(1,1,18,'animals'),
-(2,2,7,'insects'),
-(3,3,4,'bees'),
-(4,5,6,'flies'),
-(5,8,13,'mammals'),
-(6,9,10,'dogs'),
-(7,11,12,'cats'),
-(8,14,17,'fish'),
-(9,15,16,'sharks')
+INSERT INTO tree (left_key, right_key, value) VALUES
+(1,18,'animals'),
+(2,7,'insects'),
+(3,4,'bees'),
+(5,6,'flies'),
+(8,13,'mammals'),
+(9,10,'dogs'),
+(11,12,'cats'),
+(14,17,'fish'),
+(15,16,'sharks')
 ;
 
 
