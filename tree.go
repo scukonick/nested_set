@@ -68,7 +68,6 @@ func (t *Tree) Plant(value string) error {
 		ID:       id,
 		LeftKey:  1,
 		RightKey: 2,
-		Level:    0,
 		Value:    value,
 	}
 
@@ -168,7 +167,6 @@ func (t *Tree) InsertChild(parent *Node, value string) (*Node, error) {
 		Value:    value,
 		LeftKey:  parent.RightKey,
 		RightKey: parent.RightKey + 1,
-		Level:    parent.Level + 1,
 	}
 	query = `
 	INSERT INTO tree
