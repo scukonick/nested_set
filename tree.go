@@ -173,7 +173,7 @@ func (t *Tree) InsertChild(parent *Node, value string) (*Node, error) {
 	query = `
 	INSERT INTO tree
 	(left_key, right_key, value)
-	VALUES ($1, $2, $3, $4)
+	VALUES ($1, $2, $3)
 	RETURNING id
 	`
 	err = tx.QueryRow(query, n.LeftKey, n.RightKey, n.Value).Scan(&n.ID)
