@@ -1,4 +1,4 @@
-package main
+package nestedset
 
 // Node represents a node of nested set tree
 type Node struct {

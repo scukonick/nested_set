@@ -1,4 +1,4 @@
-package main
+package nestedset
 
 import _ "github.com/lib/pq"
 
